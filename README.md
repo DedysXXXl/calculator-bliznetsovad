@@ -1,16 +1,42 @@
-# Калькулятор BliznetsovAD
+# calculator-bliznetsovad
 
-## Описание
+This project is a simple calculator program written in C. It reads an arithmetic expression from standard input, parses
+it, and prints the result. The program supports the following operators on integers: `+`, `-`, `*`, `/`, `(`, and `)`.
 
-Этот проект представляет собой простой калькулятор, реализованный на языке программирования C. Калькулятор поддерживает базовые арифметические операции и выполнен согласно требованиям учебного задания.
+## Building the Program
 
-## Сборка и запуск
+To build the program, you need a C compiler such as `gcc` or `clang`. Follow these steps:
 
-Для сборки и запуска проекта используйте следующие команды:
+1. Open a terminal.
+2. Navigate to the directory containing the source code (`main.c`).
+3. Run the following command to compile the program:
 
-bash
-make all          # Собрать приложение и юнит-тесты
-make run-int      # Запустить калькулятор в целочисленном режиме
-make run-float    # Запустить калькулятор с поддержкой вещественных чисел
-make run-unit-test # Запустить юнит-тесты
+```sh
+gcc main.c -o calculator.exe
 ```
+
+This will create an executable file named `calculator.exe`.
+
+## Running the Program
+
+To run the program, use the following command:
+
+```sh
+./calculator.exe
+```
+
+The program will prompt you to enter an arithmetic expression. After entering the expression, press `Enter` and then
+`Ctrl+D` to see the result.
+
+## Formatting the C Code
+
+To format the C code according to the WebKit style, you can use `clang-format`, follow these steps:
+
+1. Ensure you have `clang-format` installed. If not, install it using your package manager.
+2. Run the following command to format the code:
+
+```sh
+clang-format -i main.c
+```
+
+This will format the `main.c` file in place according to the WebKit style.
