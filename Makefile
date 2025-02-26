@@ -1,33 +1,36 @@
-# Настройки
+# Определяем компиляторы и флаги
 CC := gcc
 CXX := g++
 CFLAGS := -Wall -Wextra -std=c11
-CPPFLAGS := -Wall -Wextra -std=c++17
-LDFLAGS :=
+CXXFLAGS := $(CFLAGS) -std=c++17
+LDFLAGS := -lgtest -lpthread
 
-# Артефакты
-APP_EXE := app.exe
-UNIT_TESTS_EXE := unit-tests.exe
+# Определяем исходники и объекты
+SRCS := src/calc.c
+OBJS := $(patsubst %.c,%.o,$(SRCS))
 
-# Цели
-.PHONY: all clean run-int run-float run-unit-test
+# Цель для сборки основного приложения
+calc.exe: $(OBJS)
+    $(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-all: $(APP_EXE) $(UNIT_TESTS_EXE)
+# Цель для сборки юнит-тестов
+unit-tests.exe: tests/unit/unit_tests.cpp $(OBJS)
+    $(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
 
-$(APP_EXE): src/main.c
-    $(CC) $(CFLAGS) -o $@ $^
+# Цель для компиляции отдельных объектов
+build/%.o: src/%.c
+    $(CC) $(CFLAGS) -c $< -o $@
 
-$(UNIT_TESTS_EXE): tests/unit/unit_tests.cpp
-    $(CXX) $(CPPFLAGS) -o $@ $^ -lgtest -lpthread
-
+# Цель для очистки всех артефактов
 clean:
-    rm -f $(APP_EXE) $(UNIT_TESTS_EXE)
+    rm -rf build/* *.exe
 
-run-int: $(APP_EXE)
-    ./$<
+# Цели для запуска приложений
+run-calc: calc.exe
+    ./calc.exe
 
-run-float: $(APP_EXE)
-    ./$< --float
+run-unit-test: unit-tests.exe
+    ./unit-tests.exe
 
-run-unit-test: $(UNIT_TESTS_EXE)
-    ./$<
+# Очистка артефактов
+.PHONY: all clean run-calc run-unit-test
