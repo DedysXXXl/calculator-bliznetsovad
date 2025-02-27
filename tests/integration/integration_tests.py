@@ -37,7 +37,7 @@ def test_division():
     assert expected_result == actual_result, f"Expected {expected_result}, but got {actual_result}"
 
 def test_float_mode():
-    expected_result = "2.50"
+    expected_result = "2.5000"
     actual_result = run_calculator("5 / 2", float_mode=True)
     assert expected_result == actual_result, f"Expected {expected_result}, but got {actual_result}"
 

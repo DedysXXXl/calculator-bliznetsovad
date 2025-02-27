@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
         char* postfix = infixToPostfix(expr, floatMode);
         void* result = evaluatePostfix(postfix, floatMode);
         if (floatMode) {
-            printf("%.2f\n", *(double*)result);
+            printf("%.4f\n", *(double*)result);
         } else {
             printf("%d\n", *(int*)result);
         }
