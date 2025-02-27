@@ -4,7 +4,7 @@ CXX := g++
 
 CFLAGS := -Wall -Wextra -Wpedantic -Werror -std=c11
 CXXFLAGS := -Wall -Wextra -Wpedantic -Werror -std=c++17
-LDFLAGS := -lstdc++ -lm -lpthread -lgtest -lgtest_main  # Добавлены системные библиотеки Google Test
+LDFLAGS := -lstdc++ -lm -lpthread -lgtest -lgtest_main
 
 # Каталоги
 SRC_DIR := src
@@ -23,16 +23,16 @@ TEST_OBJ := $(BUILD_DIR)/unit_tests.o $(BUILD_DIR)/main_test.o
 TEST_EXE := $(BUILD_DIR)/unit-tests.exe
 
 # Параметры форматирования
-FORMAT_DIRS := $(SRC_DIR) $(UNIT_TESTS_DIR)
+FORMAT_DIRS := src tests/unit
 CLANG_FORMAT := clang-format
 
 # Параметры для интеграционных тестов (Python+pytest)
 VENV := venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
-INT_TESTS := $(INTEGRATION_TEST_DIR)/tests.py
+INT_TESTS := $(INTEGRATION_TEST_DIR)/integration_tests.py  # Исправлено на integration_tests.py
 
-.PHONY: all clean run-int run-float run-unit-tests run-integration-tests venv
+.PHONY: all clean run-int run-float run-unit-tests run-integration-tests venv format
 
 # Цель "all" собирает приложение и юнит-тесты
 all: $(APP_EXE) $(TEST_EXE)
@@ -85,6 +85,7 @@ run-unit-tests: $(TEST_EXE)
 
 # --- Форматирование исходников ---
 format:
+	@echo "Форматирование исходников..."
 	@find $(FORMAT_DIRS) -type f \( -name "*.cpp" -o -name "*.c" -o -name "*.h" \) -exec $(CLANG_FORMAT) -i -style=file {} +
 
 # --- Создание виртуального окружения и установка pytest ---
@@ -97,4 +98,4 @@ venv:
 # --- Запуск интеграционных тестов ---
 run-integration-tests: venv $(APP_EXE)
 	@echo "Запуск интеграционных тестов..."
-	@$(PYTHON) $(INT_TESTS)
+	@$(PYTHON) -m pytest -v $(INT_TESTS)

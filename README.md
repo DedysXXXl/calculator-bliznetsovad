@@ -1,42 +1,33 @@
 # calculator-bliznetsovad
 
-This project is a simple calculator program written in C. It reads an arithmetic expression from standard input, parses
-it, and prints the result. The program supports the following operators on integers: `+`, `-`, `*`, `/`, `(`, and `)`.
+Этот проект представляет собой простой калькулятор, который поддерживает вычисление арифметических выражений в двух режимах: целочисленном и с плавающей точкой. Калькулятор принимает входные данные через стандартный ввод (`stdin`) и выводит результат через стандартный вывод (`stdout`).
 
-## Building the Program
+## Функциональность
 
-To build the program, you need a C compiler such as `gcc` or `clang`. Follow these steps:
+Калькулятор поддерживает следующие операции:
+- Сложение (`+`)
+- Вычитание (`-`)
+- Умножение (`*`)
+- Деление (`/`)
 
-1. Open a terminal.
-2. Navigate to the directory containing the source code (`main.c`).
-3. Run the following command to compile the program:
+### Режимы работы:
+1. **Целочисленный режим**:
+   - Все вычисления выполняются с целыми числами.
+   - Результат деления округляется в сторону нуля (например, `5 / 2 = 2`).
 
-```sh
-gcc main.c -o calculator.exe
-```
+2. **Режим с плавающей точкой**:
+   - Все вычисления выполняются с числами с плавающей точкой.
+   - Результат выводится с точностью до двух знаков после запятой (например, `5 / 2 = 2.50`).
 
-This will create an executable file named `calculator.exe`.
+### Ограничения:
+- Входные данные должны быть корректными арифметическими выражениями.
+- Поддерживаются только символы: цифры (`0-9`), операторы (`+`, `-`, `*`, `/`), скобки (`(` и `)`) и пробелы.
+- Деление на ноль запрещено и приводит к завершению программы с ошибкой.
 
-## Running the Program
+## Как запустить
 
-To run the program, use the following command:
+### Сборка проекта
+Для сборки проекта используйте команду:
 
-```sh
-./calculator.exe
-```
-
-The program will prompt you to enter an arithmetic expression. After entering the expression, press `Enter` and then
-`Ctrl+D` to see the result.
-
-## Formatting the C Code
-
-To format the C code according to the WebKit style, you can use `clang-format`, follow these steps:
-
-1. Ensure you have `clang-format` installed. If not, install it using your package manager.
-2. Run the following command to format the code:
-
-```sh
-clang-format -i main.c
-```
-
-This will format the `main.c` file in place according to the WebKit style.
+```bash
+make all
