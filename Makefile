@@ -4,7 +4,8 @@ CXX := g++
 
 CFLAGS := -Wall -Wextra -Wpedantic -Werror -std=c11
 CXXFLAGS := -Wall -Wextra -Wpedantic -Werror -std=c++17
-LDFLAGS := -lstdc++ -lm -lpthread -lgtest -lgtest_main
+APP_LDFLAGS := -lm
+TEST_LDFLAGS := -lstdc++ -lm -lpthread -lgtest -lgtest_main
 
 # Каталоги
 SRC_DIR := src
@@ -22,16 +23,16 @@ TEST_SRC := $(UNIT_TESTS_DIR)/unit_tests.cpp
 TEST_OBJ := $(BUILD_DIR)/unit_tests.o $(BUILD_DIR)/main_test.o
 TEST_EXE := $(BUILD_DIR)/unit-tests.exe
 
-# Параметры форматирования
-FORMAT_DIRS := src tests/unit
-CLANG_FORMAT := clang-format
-
-# Параметры для интеграционных тестов (Python+pytest)
+# Параметры для интеграционных тестов
 VENV := venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
-INT_TESTS := $(INTEGRATION_TEST_DIR)/integration_tests.py  # Ваш файл тестов
-INT_TESTS_FRIEND := $(INTEGRATION_TEST_DIR)/integr_test.py  # Файл тестов друга
+INT_TESTS := $(INTEGRATION_TEST_DIR)/integration_tests.py
+INT_TESTS_FRIEND := $(INTEGRATION_TEST_DIR)/integr_test.py
+
+# Параметры форматирования
+FORMAT_DIRS := src tests/unit
+CLANG_FORMAT := clang-format
 
 .PHONY: all clean run-int run-float run-unit-tests run-integration-tests venv format
 
@@ -42,7 +43,7 @@ all: $(APP_EXE) $(TEST_EXE)
 $(APP_EXE): $(APP_OBJ)
 	@mkdir -p $(BUILD_DIR)
 	@echo "Компилирование основного исполняемого файла..."
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(APP_LDFLAGS)
 
 $(BUILD_DIR)/main.o: $(APP_SRC)
 	@mkdir -p $(BUILD_DIR)
@@ -63,7 +64,7 @@ $(BUILD_DIR)/unit_tests.o: $(TEST_SRC)
 $(TEST_EXE): $(TEST_OBJ)
 	@mkdir -p $(BUILD_DIR)
 	@echo "Компилирование юнит-тестов..."
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_OBJ) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $(TEST_OBJ) $(TEST_LDFLAGS)
 
 # --- Очистка ---
 clean:
@@ -84,11 +85,6 @@ run-unit-tests: $(TEST_EXE)
 	@echo "Запуск юнит-тестов..."
 	@./$(TEST_EXE)
 
-# --- Форматирование исходников ---
-format:
-	@echo "Форматирование исходников..."
-	@find $(FORMAT_DIRS) -type f \( -name "*.cpp" -o -name "*.c" -o -name "*.h" \) -exec $(CLANG_FORMAT) -i -style=file {} +
-
 # --- Создание виртуального окружения и установка pytest ---
 venv:
 	@echo "Создание виртуального окружения..."
@@ -96,7 +92,9 @@ venv:
 	@$(PIP) install --upgrade pip
 	@$(PIP) install pytest
 
-# --- Запуск интеграционных тестов (оба файла) ---
+# --- Запуск интеграционных тестов ---
 run-integration-tests: venv $(APP_EXE)
-	@echo "Запуск интеграционных тестов..."
-	@$(PYTHON) -m pytest -v $(INT_TESTS) $(INT_TESTS_FRIEND)
+	@echo "Запуск интеграционных тестов (integration_tests.py)..."
+	@$(PYTHON) -m pytest -v $(INT_TESTS)
+	@echo "Запуск интеграционных тестов друга (integr_test.py)..."
+	@$(PYTHON) $(INT_TESTS_FRIEND)

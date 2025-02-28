@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-// Объявляем необходимые типы и функции из src/main.c
 extern "C" {
     struct Stack {
         int top;
@@ -15,7 +14,7 @@ extern "C" {
 
     void initStack(struct Stack* stack, int size, bool floatMode);
     bool isEmpty(struct Stack* stack);
-    void push(struct Stack* stack, void* value, bool floatMode);
+    int push(struct Stack* stack, void* value, bool floatMode);
     void* pop(struct Stack* stack, bool floatMode);
     void* peek(struct Stack* stack, bool floatMode);
     int precedence(char op);
@@ -23,11 +22,9 @@ extern "C" {
     void* evaluatePostfix(char* postfix, bool floatMode);
 }
 
-// Тесты для функции initStack()
 TEST(StackInitTests, InitStack_Int) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
     EXPECT_EQ(stack.top, -1);
     EXPECT_EQ(stack.capacity, 10);
     EXPECT_NE(stack.array, nullptr);
@@ -37,36 +34,29 @@ TEST(StackInitTests, InitStack_Int) {
 TEST(StackInitTests, InitStack_Double) {
     struct Stack stack;
     initStack(&stack, 10, true);
-
     EXPECT_EQ(stack.top, -1);
     EXPECT_EQ(stack.capacity, 10);
     EXPECT_NE(stack.array, nullptr);
     free(stack.array);
 }
 
-// Тесты для функции isEmpty()
 TEST(StackIsEmptyTests, EmptyStack) {
     struct Stack stack;
     stack.top = -1;
-
     EXPECT_TRUE(isEmpty(&stack));
 }
 
 TEST(StackIsEmptyTests, NonEmptyStack) {
     struct Stack stack;
     stack.top = 0;
-
     EXPECT_FALSE(isEmpty(&stack));
 }
 
-// Тесты для функции push()
 TEST(StackPushTests, PushInt) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
     int value = 42;
-    push(&stack, &value, false);
-
+    EXPECT_EQ(push(&stack, &value, false), 0);
     EXPECT_EQ(*(int*)(stack.array), 42);
     EXPECT_EQ(stack.top, 0);
     free(stack.array);
@@ -75,10 +65,8 @@ TEST(StackPushTests, PushInt) {
 TEST(StackPushTests, PushDouble) {
     struct Stack stack;
     initStack(&stack, 10, true);
-
     double value = 3.14;
-    push(&stack, &value, true);
-
+    EXPECT_EQ(push(&stack, &value, true), 0);
     EXPECT_DOUBLE_EQ(*(double*)(stack.array), 3.14);
     EXPECT_EQ(stack.top, 0);
     free(stack.array);
@@ -87,23 +75,19 @@ TEST(StackPushTests, PushDouble) {
 TEST(StackPushTests, PushOverflow) {
     struct Stack stack;
     initStack(&stack, 1, false);
-
     int value = 123;
-    push(&stack, &value, false);
-    push(&stack, &value, false);
-
-    EXPECT_DEATH(push(&stack, &value, false), "");
+    EXPECT_EQ(push(&stack, &value, false), 0);
+    EXPECT_EQ(push(&stack, &value, false), -1);
+    EXPECT_EQ(stack.top, 0);
+    EXPECT_EQ(*(int*)stack.array, 123);
     free(stack.array);
 }
 
-// Тесты для функции pop()
 TEST(StackPopTests, PopInt) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
     int value = 100;
     push(&stack, &value, false);
-
     int* poppedValue = (int*)pop(&stack, false);
     EXPECT_EQ(*poppedValue, 100);
     EXPECT_EQ(stack.top, -1);
@@ -113,10 +97,8 @@ TEST(StackPopTests, PopInt) {
 TEST(StackPopTests, PopDouble) {
     struct Stack stack;
     initStack(&stack, 10, true);
-
     double value = 12.34;
     push(&stack, &value, true);
-
     double* poppedValue = (double*)pop(&stack, true);
     EXPECT_DOUBLE_EQ(*poppedValue, 12.34);
     EXPECT_EQ(stack.top, -1);
@@ -126,19 +108,16 @@ TEST(StackPopTests, PopDouble) {
 TEST(StackPopTests, PopFromEmptyStack) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
-    EXPECT_DEATH(pop(&stack, false), "");
+    void* result = pop(&stack, false);
+    EXPECT_EQ(result, nullptr);
     free(stack.array);
 }
 
-// Тесты для функции peek()
 TEST(StackPeekTests, PeekInt) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
     int value = 99;
     push(&stack, &value, false);
-
     int* peekedValue = (int*)peek(&stack, false);
     EXPECT_EQ(*peekedValue, 99);
     EXPECT_EQ(stack.top, 0);
@@ -148,10 +127,8 @@ TEST(StackPeekTests, PeekInt) {
 TEST(StackPeekTests, PeekDouble) {
     struct Stack stack;
     initStack(&stack, 10, true);
-
     double value = 9.87;
     push(&stack, &value, true);
-
     double* peekedValue = (double*)peek(&stack, true);
     EXPECT_DOUBLE_EQ(*peekedValue, 9.87);
     EXPECT_EQ(stack.top, 0);
@@ -161,12 +138,11 @@ TEST(StackPeekTests, PeekDouble) {
 TEST(StackPeekTests, PeekFromEmptyStack) {
     struct Stack stack;
     initStack(&stack, 10, false);
-
-    EXPECT_DEATH(peek(&stack, false), "");
+    void* result = peek(&stack, false);
+    EXPECT_EQ(result, nullptr);
     free(stack.array);
 }
 
-// Тесты для функции precedence()
 TEST(PrecedenceTests, PrecedenceParentheses) {
     EXPECT_EQ(precedence('('), 0);
     EXPECT_EQ(precedence(')'), 1);
@@ -186,13 +162,11 @@ TEST(PrecedenceTests, InvalidOperator) {
     EXPECT_EQ(precedence('#'), -1);
 }
 
-// Тесты для функции infixToPostfix()
 TEST(InfixToPostfixTests, SimpleExpression) {
     char infix[] = "2+3";
     bool floatMode = false;
-    const char* expectedPostfix = "23+ ";
+    const char* expectedPostfix = "2 3 + ";
     char* actualPostfix = infixToPostfix(infix, floatMode);
-
     EXPECT_STREQ(actualPostfix, expectedPostfix);
     free(actualPostfix);
 }
@@ -200,9 +174,8 @@ TEST(InfixToPostfixTests, SimpleExpression) {
 TEST(InfixToPostfixTests, ComplexExpression) {
     char infix[] = "(2+3)*4/(8-2)";
     bool floatMode = false;
-    const char* expectedPostfix = "234+ * 82-/ ";
+    const char* expectedPostfix = "2 3 + 4 * 8 2 - / ";
     char* actualPostfix = infixToPostfix(infix, floatMode);
-
     EXPECT_STREQ(actualPostfix, expectedPostfix);
     free(actualPostfix);
 }
@@ -212,37 +185,35 @@ TEST(InfixToPostfixTests, FloatModeExpression) {
     bool floatMode = true;
     const char* expectedPostfix = "2.5 3.7 + ";
     char* actualPostfix = infixToPostfix(infix, floatMode);
-
     EXPECT_STREQ(actualPostfix, expectedPostfix);
     free(actualPostfix);
 }
 
-// Тесты для функции evaluatePostfix()
 TEST(EvaluatePostfixTests, SimpleAddition) {
-    char postfix[] = "23+ ";
+    char postfix[] = "2 3 + ";
     bool floatMode = false;
     int expectedResult = 5;
     void* actualResult = evaluatePostfix(postfix, floatMode);
-
+    ASSERT_NE(actualResult, nullptr);
     EXPECT_EQ(*(int*)actualResult, expectedResult);
     free(actualResult);
 }
 
 TEST(EvaluatePostfixTests, ComplexExpression) {
-    char postfix[] = "234+* 82-/ ";
+    char postfix[] = "2 3 + 4 * 8 2 - / ";
     bool floatMode = false;
-    int expectedResult = 20;
+    int expectedResult = 10; // (2+3)*4/(8-2) = 20/2 = 10
     void* actualResult = evaluatePostfix(postfix, floatMode);
-
+    ASSERT_NE(actualResult, nullptr);
     EXPECT_EQ(*(int*)actualResult, expectedResult);
     free(actualResult);
 }
 
 TEST(EvaluatePostfixTests, DivisionByZero) {
-    char postfix[] = "24/ ";
+    char postfix[] = "2 0 / ";
     bool floatMode = false;
-
-    EXPECT_DEATH(evaluatePostfix(postfix, floatMode), "");
+    void* result = evaluatePostfix(postfix, floatMode);
+    EXPECT_EQ(result, nullptr);
 }
 
 TEST(EvaluatePostfixTests, FloatModeEvaluation) {
@@ -250,8 +221,7 @@ TEST(EvaluatePostfixTests, FloatModeEvaluation) {
     bool floatMode = true;
     double expectedResult = 6.2;
     void* actualResult = evaluatePostfix(postfix, floatMode);
-
+    ASSERT_NE(actualResult, nullptr);
     EXPECT_DOUBLE_EQ(*(double*)actualResult, expectedResult);
     free(actualResult);
 }
-

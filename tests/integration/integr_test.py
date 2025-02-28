@@ -1,9 +1,8 @@
 import subprocess
 import pytest
-import os
 
 # Путь к исполняемому файлу
-APP_PATH = os.path.join("build", "app.exe")
+APP_PATH = "./build/app.exe"
 
 def run_calculator(input_str, float_mode=False):
     """Запускает калькулятор с заданным вводом и возвращает вывод."""
@@ -64,7 +63,7 @@ def test_zero_division():
 def test_invalid_operators():
     stdout, stderr, returncode = run_calculator("4 +* 6")
     assert stdout == ""
-    assert "Ошибка: Последовательные операторы" in stderr
+    assert "Ошибка: Последовательные операторы" in stderr  # Унифицировано
     assert returncode == 1
 
 # Тест максимального числа
