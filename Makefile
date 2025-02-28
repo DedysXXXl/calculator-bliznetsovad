@@ -30,7 +30,8 @@ CLANG_FORMAT := clang-format
 VENV := venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
-INT_TESTS := $(INTEGRATION_TEST_DIR)/integration_tests.py  # Исправлено на integration_tests.py
+INT_TESTS := $(INTEGRATION_TEST_DIR)/integration_tests.py  # Ваш файл тестов
+INT_TESTS_FRIEND := $(INTEGRATION_TEST_DIR)/integr_test.py  # Файл тестов друга
 
 .PHONY: all clean run-int run-float run-unit-tests run-integration-tests venv format
 
@@ -95,7 +96,7 @@ venv:
 	@$(PIP) install --upgrade pip
 	@$(PIP) install pytest
 
-# --- Запуск интеграционных тестов ---
+# --- Запуск интеграционных тестов (оба файла) ---
 run-integration-tests: venv $(APP_EXE)
 	@echo "Запуск интеграционных тестов..."
-	@$(PYTHON) -m pytest -v $(INT_TESTS)
+	@$(PYTHON) -m pytest -v $(INT_TESTS) $(INT_TESTS_FRIEND)

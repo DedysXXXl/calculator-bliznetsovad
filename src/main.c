@@ -1,21 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>    // Для isdigit()
-#include <string.h>   // Для strlen(), strcat()
+#include <ctype.h>
+#include <string.h>
 #include <limits.h>
 #include <stdbool.h>
-#include <stdint.h>   // Для intptr_t
+#include <stdint.h>
+#include <math.h> // Добавлено для fabs()
 
 #define MAX_INPUT_SIZE 1024
 
-// Структура стека
 struct Stack {
     int top;
     int capacity;
     void* array;
 };
 
-// Инициализация стека
 void initStack(struct Stack* stack, int size, bool floatMode) {
     stack->top = -1;
     stack->capacity = size;
@@ -26,12 +25,10 @@ void initStack(struct Stack* stack, int size, bool floatMode) {
     }
 }
 
-// Проверка пустоты стека
 bool isEmpty(struct Stack* stack) {
     return stack->top == -1;
 }
 
-// Добавление элемента в стек
 void push(struct Stack* stack, void* value, bool floatMode) {
     if (stack->top >= stack->capacity - 1) {
         fprintf(stderr, "Ошибка: стек переполнен\n");
@@ -44,7 +41,6 @@ void push(struct Stack* stack, void* value, bool floatMode) {
     }
 }
 
-// Извлечение элемента из стека
 void* pop(struct Stack* stack, bool floatMode) {
     if (isEmpty(stack)) {
         fprintf(stderr, "Ошибка: стек пуст\n");
@@ -57,7 +53,6 @@ void* pop(struct Stack* stack, bool floatMode) {
     }
 }
 
-// Получение верхнего элемента стека
 void* peek(struct Stack* stack, bool floatMode) {
     if (isEmpty(stack)) {
         fprintf(stderr, "Ошибка: стек пуст\n");
@@ -70,7 +65,6 @@ void* peek(struct Stack* stack, bool floatMode) {
     }
 }
 
-// Определение приоритета оператора
 int precedence(char op) {
     switch (op) {
         case '(': return 0;
@@ -79,39 +73,48 @@ int precedence(char op) {
         case '-': return 2;
         case '*':
         case '/': return 3;
-        default : return -1;
+        case '~': return 4;
+        default: return -1;
     }
 }
 
-// Преобразование инфиксной записи в постфиксную
+bool is_operator(char c) {
+    return c == '+' || c == '-' || c == '*' || c == '/' || c == '~';
+}
+
 char* infixToPostfix(char* infix, bool floatMode) {
     struct Stack operatorStack;
-    initStack(&operatorStack, MAX_INPUT_SIZE, false); // Стек для операторов
+    initStack(&operatorStack, MAX_INPUT_SIZE, false);
     int i = 0, k = 0;
-    // Выделяем достаточно памяти (наихудший случай: каждый символ и пробел)
     char* postfix = (char*)malloc(strlen(infix) * 2 + 1);
     postfix[0] = '\0';
     
-    bool prevWasOperator = true; // В начале считаем, что предыдущего токена нет (т.е. унарный минус возможен)
+    bool prevWasOperator = true;
     
     while (infix[i] != '\0') {
         if (isspace(infix[i])) {
             i++;
             continue;
         }
-        // Если текущий символ '-' и предыдущий токен — оператор или его нет, то это унарный минус
-        if (infix[i] == '-' && prevWasOperator) {
-            // Копируем знак минус в выходную строку как часть числа
-            postfix[k++] = '-';
-            i++;
+        
+        if (infix[i] == '-' && (prevWasOperator || i == 0 || infix[i-1] == '(')) {
+            if (infix[i+1] == '(') {
+                int op = '~';
+                push(&operatorStack, &op, false);
+                i++;
+            } else {
+                postfix[k++] = '-';
+                i++;
+            }
+            while (isspace(infix[i])) i++;
+            continue;
         }
-        // Если число (цифра или точка для float)
+        
         if (isdigit(infix[i]) || (floatMode && infix[i] == '.')) {
             while (isdigit(infix[i]) || (floatMode && infix[i] == '.')) {
                 postfix[k++] = infix[i++];
             }
             postfix[k++] = ' ';
-            postfix[k] = '\0';
             prevWasOperator = false;
             continue;
         }
@@ -119,6 +122,7 @@ char* infixToPostfix(char* infix, bool floatMode) {
             int op = infix[i];
             push(&operatorStack, &op, false);
             prevWasOperator = true;
+            i++;
         }
         else if (infix[i] == ')') {
             while (!isEmpty(&operatorStack) && (*(int*)peek(&operatorStack, false)) != '(') {
@@ -128,13 +132,27 @@ char* infixToPostfix(char* infix, bool floatMode) {
             }
             if (isEmpty(&operatorStack)) {
                 fprintf(stderr, "Ошибка: неверная расстановка скобок\n");
-                exit(EXIT_FAILURE);
-            } else {
-                pop(&operatorStack, false); // Удаляем '('
+                free(operatorStack.array);
+                free(postfix);
+                return NULL;
+            }
+            pop(&operatorStack, false);
+            if (!isEmpty(&operatorStack) && (*(int*)peek(&operatorStack, false)) == '~') {
+                int op = *(int*)pop(&operatorStack, false);
+                postfix[k++] = (char)op;
+                postfix[k++] = ' ';
             }
             prevWasOperator = false;
+            i++;
         }
-        else { // оператор (кроме унарного минуса, который уже обработан)
+        else if (is_operator(infix[i])) {
+            // Проверка на последовательные операторы
+            if (prevWasOperator && infix[i] != '-') {
+                fprintf(stderr, "Ошибка: Последовательные операторы\n");
+                free(operatorStack.array);
+                free(postfix);
+                return NULL;
+            }
             while (!isEmpty(&operatorStack) &&
                    precedence(*(int*)peek(&operatorStack, false)) >= precedence(infix[i])) {
                 int op = *(int*)pop(&operatorStack, false);
@@ -144,35 +162,47 @@ char* infixToPostfix(char* infix, bool floatMode) {
             int op = infix[i];
             push(&operatorStack, &op, false);
             prevWasOperator = true;
+            i++;
         }
-        i++;
+        else {
+            i++;
+        }
     }
     
     while (!isEmpty(&operatorStack)) {
         int op = *(int*)pop(&operatorStack, false);
+        if (op == '(') {
+            fprintf(stderr, "Ошибка: неверная расстановка скобок\n");
+            free(operatorStack.array);
+            free(postfix);
+            return NULL;
+        }
         postfix[k++] = (char)op;
         postfix[k++] = ' ';
     }
+    if (k > 0 && postfix[k-1] == ' ') k--;
     postfix[k] = '\0';
     
     free(operatorStack.array);
     return postfix;
 }
 
-// Вычисление значения постфиксного выражения
 void* evaluatePostfix(char* postfix, bool floatMode) {
+    if (postfix == NULL) {
+        return NULL;
+    }
+    
     struct Stack operandStack;
     initStack(&operandStack, MAX_INPUT_SIZE, floatMode);
-    
     int i = 0;
+    
     while (postfix[i] != '\0') {
         if (isspace(postfix[i])) {
             i++;
             continue;
         }
-        if (isdigit(postfix[i]) || (floatMode && (postfix[i] == '-' || postfix[i] == '.') ) || 
-           (postfix[i] == '-' && (postfix[i+1] && (isdigit(postfix[i+1]) || (floatMode && postfix[i+1]=='.'))))) {
-            // Читаем число (strtod корректно обработает знак минус)
+        
+        if (isdigit(postfix[i]) || (postfix[i] == '-' && (postfix[i+1] && (isdigit(postfix[i+1]) || (floatMode && postfix[i+1] == '.')))) || (floatMode && postfix[i] == '.')) {
             if (floatMode) {
                 double num = strtod(&postfix[i], NULL);
                 push(&operandStack, &num, true);
@@ -180,16 +210,33 @@ void* evaluatePostfix(char* postfix, bool floatMode) {
                 int num = atoi(&postfix[i]);
                 push(&operandStack, &num, false);
             }
-            while (postfix[i] && !isspace(postfix[i]))
-                i++;
+            while (postfix[i] && !isspace(postfix[i])) i++;
+        }
+        else if (postfix[i] == '~') {
+            void* a_ptr = pop(&operandStack, floatMode);
+            if (!a_ptr) {
+                fprintf(stderr, "Ошибка: недостаточно операндов для унарного минуса\n");
+                free(operandStack.array);
+                return NULL;
+            }
+            if (floatMode) {
+                double a = *(double*)a_ptr;
+                double res = -a;
+                push(&operandStack, &res, true);
+            } else {
+                int a = *(int*)a_ptr;
+                int res = -a;
+                push(&operandStack, &res, false);
+            }
+            i++;
         }
         else {
-            // Оператор: извлекаем два числа из стека
             void* b_ptr = pop(&operandStack, floatMode);
             void* a_ptr = pop(&operandStack, floatMode);
             if (!b_ptr || !a_ptr) {
                 fprintf(stderr, "Ошибка: стек пуст при вычислении\n");
-                exit(EXIT_FAILURE);
+                free(operandStack.array);
+                return NULL;
             }
             if (floatMode) {
                 double a = *(double*)a_ptr;
@@ -199,16 +246,23 @@ void* evaluatePostfix(char* postfix, bool floatMode) {
                     case '+': res = a + b; break;
                     case '-': res = a - b; break;
                     case '*': res = a * b; break;
-                    case '/': 
+                    case '/':
                         if (b == 0.0) {
-                            fprintf(stderr, "Ошибка: деление на ноль\n");
-                            exit(EXIT_FAILURE);
+                            fprintf(stderr, "Ошибка: Деление на ноль\n");
+                            free(operandStack.array);
+                            return NULL;
+                        }
+                        if (fabs(b) < 0.0001) { // Проверка на слишком маленький делитель
+                            fprintf(stderr, "Ошибка: Делитель слишком мал\n");
+                            free(operandStack.array);
+                            return NULL;
                         }
                         res = a / b;
                         break;
                     default:
                         fprintf(stderr, "Ошибка: неизвестный оператор\n");
-                        exit(EXIT_FAILURE);
+                        free(operandStack.array);
+                        return NULL;
                 }
                 push(&operandStack, &res, true);
             } else {
@@ -219,37 +273,50 @@ void* evaluatePostfix(char* postfix, bool floatMode) {
                     case '+': res = a + b; break;
                     case '-': res = a - b; break;
                     case '*': res = a * b; break;
-                    case '/': 
+                    case '/':
                         if (b == 0) {
-                            fprintf(stderr, "Ошибка: деление на ноль\n");
-                            exit(EXIT_FAILURE);
+                            fprintf(stderr, "Ошибка: Деление на ноль\n");
+                            free(operandStack.array);
+                            return NULL;
                         }
                         res = a / b;
                         break;
                     default:
                         fprintf(stderr, "Ошибка: неизвестный оператор\n");
-                        exit(EXIT_FAILURE);
+                        free(operandStack.array);
+                        return NULL;
                 }
                 push(&operandStack, &res, false);
             }
             i++;
         }
     }
-    // Извлекаем результат из стека и копируем в выделенную память
+    
+    if (isEmpty(&operandStack)) {
+        fprintf(stderr, "Ошибка: пустое выражение\n");
+        free(operandStack.array);
+        return NULL;
+    }
+    
+    void* result = malloc(floatMode ? sizeof(double) : sizeof(int));
     void* res_ptr = pop(&operandStack, floatMode);
-    void* result;
     if (floatMode) {
-        result = malloc(sizeof(double));
         *(double*)result = *(double*)res_ptr;
     } else {
-        result = malloc(sizeof(int));
         *(int*)result = *(int*)res_ptr;
     }
+    
+    if (!isEmpty(&operandStack)) {
+        fprintf(stderr, "Ошибка: избыточные операнды\n");
+        free(result);
+        free(operandStack.array);
+        return NULL;
+    }
+    
     free(operandStack.array);
     return result;
 }
 
-// Основная функция (однократное вычисление и завершение)
 #ifndef UNIT_TEST
 int main(int argc, char** argv) {
     bool floatMode = false;
@@ -258,18 +325,39 @@ int main(int argc, char** argv) {
     }
     
     char expr[MAX_INPUT_SIZE];
-    if (fgets(expr, MAX_INPUT_SIZE, stdin)) {
-        char* postfix = infixToPostfix(expr, floatMode);
-        void* result = evaluatePostfix(postfix, floatMode);
-        if (floatMode) {
-            printf("%.4f\n", *(double*)result);
-        } else {
-            printf("%d\n", *(int*)result);
-        }
-        free(postfix);
-        free(result);
+    if (fgets(expr, MAX_INPUT_SIZE, stdin) == NULL) {
+        fprintf(stderr, "Ошибка: не удалось прочитать ввод\n");
+        return 1;
     }
     
+    size_t len = strlen(expr);
+    if (len > 0 && expr[len - 1] == '\n') {
+        expr[len - 1] = '\0';
+    }
+    
+    if (strlen(expr) == 0) {
+        return 0;
+    }
+    
+    char* postfix = infixToPostfix(expr, floatMode);
+    if (postfix == NULL) {
+        return 1;
+    }
+    
+    void* result = evaluatePostfix(postfix, floatMode);
+    if (result == NULL) {
+        free(postfix);
+        return 1;
+    }
+    
+    if (floatMode) {
+        printf("%.4f\n", *(double*)result);
+    } else {
+        printf("%d\n", *(int*)result);
+    }
+    
+    free(postfix);
+    free(result);
     return 0;
 }
 #endif
